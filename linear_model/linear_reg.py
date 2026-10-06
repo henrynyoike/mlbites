@@ -1,95 +1,47 @@
 import numpy as np
 from numpy.typing import NDArray , ArrayLike
-import sys
-from pandas import DataFrame
-from sklearn import linear_model
 
-class LinearRegression : 
-    def __init__(self):
-        self._fitted = False
-        self._coeff = None
-        self.bias = 0
-        self.lr = 0.001
-        self.iterations = 100
-
-    def _validate_data(self,
-            X:ArrayLike|DataFrame=None , 
-            y:ArrayLike|DataFrame=None) -> bool: # Check if the dataset is valid for training
+class LinearRegression: 
+    def __init__(self , 
+            fit_intercept:bool=True):
         
-        x_rows , x_cols = np.shape(X)
-        y_rows , y_cols = np.shape(y)
-        
-        # Length of the Dependent and Independent variables
-        if x_rows != y_rows:
-            print(f"Error : X and Y must be of same number of rows , X is {self.x_shape[0]} and Y is {self.y_shape[0]}")
-            return False
+        self.coef_ = None
+        self.intercept_ = None
+        self.fit_intercept_ = fit_intercept
 
-        # Dependent variable must have shape of (n , 1)
-        if y_cols != 1 :
-            print(f"Error : Dependent Variable 'Y' must be of shape (n , 1) , yours is (n , {y_cols})")
-            return False
-
-        return True
-
-    def fit(self , 
-            X:ArrayLike|DataFrame=None , 
-            y:ArrayLike|DataFrame=None, 
+    def fit(self , X:ArrayLike=None , 
+            y:ArrayLike|DataFrame=None ,
             learning_rate:float = 0.001,
-            iterations:int = 100):
+            iterations:int=100):
+        """Fit the Linear Regression Model"""
+        self.X = np.asarray(X , dtype=float)
+        self.y = np.asarray(y , dtype=float)
         
-        self.lr = learning_rate
-        self.iterations = iterations
-
-        self.X = X
-        self.y = y
-
-        self.x_shape = np.shape(X)
-        self.y_shape = np.shape(y)
-
-        if not self._validate_data(self.X , self.y):
-            sys.exit(0)
-
-        # Initiate the coefficients and bias to zero
-        self._coeff = np.linalg.inv((self.X.T@self.X)) @ (self.X.T@self.y) 
-        self.bias = 0
-
-        for _ in range(self.iterations):
-            y_pred = np.dot(X , self._coeff) + self.bias
+        # Get the shapes of X
+        n_samples , n_features = X.shape
             
-            # Get the gradients of the coefficients and bias
-            n_samples = self.x_shape[0]
-            
-            dw = (2 / n_samples) * np.dot(X.T , (y_pred - self.y))
-            db = (2 / n_samples) * np.sum(y_pred - self.y)
-            
-            # Gradient descent of the coefficients and bias
-            self._coeff -= (dw * self.lr)
-            self.bias -= (db * self.lr)
+        if n_samples != self.y.shape[0]:
+            raise ValueError("X and Y must contain the same number of samples")
+   
+        X_mean = np.mean(self.X , axis=0)
+        y_mean = np.mean(self.y)
         
-        self._fitted = True
-        return self._coeff , self.bias
+        if self.fit_intercept_ :
+            self.X = self.X - X_mean
+            self.y = self.y - y_mean
+            
+        # Get the coefficient using the Normal Equation or the Least Squares Function
+        #self.coef_ = np.linalg.solve(self.X.T@self.X + (self.alpha * np.eye(n_features)) , (self.X.T@self.y))
+        self.coef_ , *_ = np.linalg.lstsq(self.X , self.y , rcond=None)
+        
+        if self.fit_intercept_ :
+            self.intercept_ = y_mean - (X_mean @ self.coef_)
+        else :
+            self.intercept_ = 0
 
-    def predict(self , X:ArrayLike|DataFrame = None):
-        if not self._fitted :
-            print("Please Train model first with 'LinearRegression.fit(X , y)' in order to predict")
-            sys.exit0()
+        return self.coef_ , self.intercept_
+    
+    def predict(self , X:ArrayLike):
+        X = np.asarray(X , dtype=float)
+        return np.array(np.dot(X , self.coef_) + self.intercept_)
 
-        return np.dot(X , self._coeff) + self.bias
-
-x = np.random.normal(size=(5000 , 10))
-y = np.random.normal(size=(5000 , 2))
-
-model = LinearRegression()
-lr = linear_model.LinearRegression()
-
-model.fit(x , y)
-lr.fit(x ,y)
-
-y_pred = model.predict(x)
-y2 = lr.predict(x)
-
-mse = np.mean((y_pred - y) **2)
-mse2 = np.mean((y2 - y) **2)
-
-print(mse)
-print(mse2)

@@ -1,62 +1,49 @@
 import numpy as np
 from numpy.typing import NDArray , ArrayLike
-from pandas import DataFrame
-from sklearn import linear_model
 
-class RidgeRegression : 
-    def __init__(self):
-        self._coeff = None
-        self.bias = None
-
-    def fit(self , X:ArrayLike|DataFrame=None , 
-            y:ArrayLike|DataFrame=None ,
-            alpha:float = 0.001,
-            iterations:int=100):
-
-        self.X = X
-        self.y = y
-
+class Ridge: 
+    def __init__(self , 
+            alpha:float =0.1 ,
+            fit_intercept:bool=True):
+        
         self.alpha = alpha
-        self.iterations = iterations
+        self.coef_ = None
+        self.intercept_ = None
+        self.fit_intercept_ = fit_intercept
 
-        # Get the shapes of X and Y
-        x_rows , x_cols = np.shape(self.X)
-        y_rows , y_cols = np.shape(self.y)
+    def fit(self , X:ArrayLike=None , 
+            y:ArrayLike|DataFrame=None ,
+            learning_rate:float = 0.001,
+            iterations:int=100):
+        """Fit the Ridge Regression Model"""
+        self.X = np.asarray(X , dtype=float)
+        self.y = np.asarray(y , dtype=float)
+        
+        # Get the shapes of X
+        n_samples , n_features = X.shape
+            
+        if n_samples != self.y.shape[0]:
+            raise ValueError("X and Y must contain the same number of samples")
 
-        # Initializa the coefficients and bias
-        self._coeff = np.linalg.inv(self.X.T@self.X) @ (self.X.T@self.y)
-        self.bias = 0 
+   
+        X_mean = np.mean(self.X , axis=0)
+        y_mean = np.mean(self.y)
+        
+        if self.fit_intercept_ :
+            self.X = self.X - X_mean
+            self.y = self.y - y_mean
+            
+        # Get the coefficient using the Normal Equation but add a L2 regularization using alpha_
+        self.coef_ = np.linalg.solve(self.X.T@self.X + (self.alpha * np.eye(n_features)) , (self.X.T@self.y))
+        
+        if self.fit_intercept_ :
+            self.intercept_ = y_mean - (X_mean @ self.coef_)
+        else :
+            self.intercept_ = 0
 
-        for _ in range(self.iterations):
-            y_pred = np.dot(self.X , self._coeff) + self.bias
-
-            error = y_pred - y
-
-            dw = (2 / x_rows) * (self.X.T @ error)
-            db = (2 / x_rows) * np.sum(error)
-
-            # Gradient Descent
-            self._coeff -= (dw * self.alpha)
-            self.bias -= (db * self.alpha)
-
-        return self._coeff , self.bias
+        return self.coef_ , self.intercept_
     
-    def predict(self , X:NDArray|ArrayLike):
-        return np.dot(X , self._coeff) + self.bias
-
-x = np.random.uniform(size=(1000 , 5))
-y = np.random.uniform(size=(1000 , 1))
-
-model = RidgeRegression()
-model2 = linear_model.Lars()
-
-model.fit(x , y)
-model2.fit(x ,y)
-
-y_pred = model.predict(x)
-y_pred2 = model2.predict(x)
-
-print("Y : " , np.mean((y_pred - y) ** 2))
-print("Y2 :" , np.mean((y_pred2 - y) ** 2))
-
+    def predict(self , X:ArrayLike):
+        X = np.asarray(X , dtype=float)
+        return np.array(np.dot(X , self.coef_) + self.intercept_)
 
