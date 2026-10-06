@@ -1,7 +1,26 @@
-import numpy as np
+import numpy as np 
+from numpy.typing import ArrayLike
 import sys
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
+
+def make_regression(n_samples:int=100 , 
+            n_features:int=100 , 
+            n_targets=1 , 
+            shuffle:bool = True):
+
+    if n_features > n_samples : 
+        raise ValueError("Number of Features is greater that the total number of observations in the dataset")
+        sys.exit(0)   
+   
+    coeff = np.random.randn(n_features , 1)
+    bias = np.random.randn()
+
+    # Get the random values of the datasets
+    X = np.random.randn(n_samples , n_features)
+    y = np.dot(X , coeff ) + bias
+
+    data = (X , y)
+
+    return data
 
 def make_classification(
     n_samples:int = 100, 
@@ -31,15 +50,6 @@ def make_classification(
     data = (X , y)
     return data
 
-x ,y = make_classification(n_samples=1000000 , n_features=10 , n_classes=3 , n_repeated=0)
 
-model = DecisionTreeClassifier()
 
-model.fit(x , y)
-
-y_pred = model.predict(x)
-
-accuracy = accuracy_score(y_pred , y)
-
-print("Accuracy : " , accuracy)
 
