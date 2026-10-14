@@ -2,6 +2,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from sklearn.datasets import make_classification , load_iris
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 class GaussianNB :
     def __init__(self ):
@@ -51,17 +52,20 @@ class GaussianNB :
         x_pred = np.array(X)
         
         return np.array([self._predict_one(x) for x in x_pred])
-
+#
 data  = load_iris()
 
-X , y = make_classification()#data.data , data.target
+X , y = data.data , data.target
+
+X_train , X_test , y_train , y_test = train_test_split(X ,y , test_size=0.2)
+
 
 model = GaussianNB()
 
-model.fit(X ,y)
+model.fit(X_train ,y_train)
 
-y_pred = model.predict(X)
+y_pred = model.predict(X_test)
 
-print(accuracy_score(y , y_pred))
+print(accuracy_score(y_test , y_pred))
 
 
